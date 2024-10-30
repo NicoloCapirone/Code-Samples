@@ -1,0 +1,22 @@
+{\rtf1\ansi\ansicpg1252\cocoartf2761
+\cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fswiss\fcharset0 Helvetica;}
+{\colortbl;\red255\green255\blue255;}
+{\*\expandedcolortbl;;}
+\margl1440\margr1440\vieww11520\viewh8400\viewkind0
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+
+\f0\fs24 \cf0 I am aware that the naming of the files can be confusing, so I thought I would be best to provide a legend.\
+\
+\'93sNoConfounder.R\'94 uses an artificially generated deterministic and discrete set of data. From it I calculate the causal effect of A on Y, as well as use it to estimate the causal effect of A on Y in the dataset used for \'93tNoConfounder.R\'94.\
+\
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+\cf0 \'93tNoConfounder.R\'94 is the counterpart of \'93sNoConfounder.R\'94. The data generating process for the previous dataset is repeated, but with a slight shift in the distribution. Then from it I calculate the causal effect of A on Y, as well as use it to estimate the causal effect of A on Y in another dataset.\
+\
+\'93Snoerrorsamevalues.R\'94 is similar to \'93sNoConfounder.R\'94 but noise it added to the dataset.\
+\
+\'93Tnoerrorsamevalues.R\'94 is similar to \'93tNoConfounder.R\'94 but noise it added to the dataset.\
+\
+\
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+\cf0 \
+}

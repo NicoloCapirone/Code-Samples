@@ -1,0 +1,63 @@
+---
+title: "Untitled"
+output:
+  html_document: default
+  pdf_document: default
+date: "2024-04-26"
+---
+
+```{r results}
+
+library(ggplot2)
+
+results_stn <- read.csv("/Users/nicolocapirone/Documents/Uni/BU/Causal Inference/Problem Sets/results_stn.csv")
+
+results_tsn <- read.csv("/Users/nicolocapirone/Documents/Uni/BU/Causal Inference/Problem Sets/results_tsn.csv")
+
+results_ts <- read.csv("/Users/nicolocapirone/Documents/Uni/BU/Causal Inference/Problem Sets/results_ts.csv")
+
+results_st <- read.csv("/Users/nicolocapirone/Documents/Uni/BU/Causal Inference/Problem Sets/results_st.csv")
+
+rownames(results_stn) = c("y=7","y=8","y=9","y=10","y=11","y=12","y=13","y=14")
+
+rownames(results_tsn) = c("y=7","y=8","y=9","y=10","y=11","y=12","y=13","y=14")
+
+colnames(results_stn) = c("P'(y|do(1),x)P(x)", "P'(y|do(0),x)P(x)", "P(y|do(1))","P(y|do(0))")
+
+colnames(results_tsn) = c("P(y|do(1),x)P'(x)", "P(y|do(0),x)P'(x)", "P'(y|do(1))","P'(y|do(0))")
+
+
+colnames(results_st) = c("P'(y|do(1),x)P(x)", "P'(y|do(0),x)P(x)", "P(y|do(1))","P(y|do(0))")
+
+colnames(results_ts) = c("P(y|do(1),x)P'(x)", "P(y|do(0),x)P'(x)", "P'(y|do(1))","P'(y|do(0))")
+
+rownames(results_st) = c("y=14","y=15","y=16","y=17")
+
+rownames(results_ts) = c("y=14","y=15","y=16","y=17")
+
+results_stn
+
+results_tsn
+
+results_st
+
+results_ts
+
+results_st$diff1 <- results_st$`P'(y|do(1),x)P(x)` - results_st$`P(y|do(1))`
+
+results_st$diff0 <- results_st$`P'(y|do(0),x)P(x)` - results_st$`P(y|do(0))`
+
+
+results_ts$diff1 <- results_ts$`P(y|do(1),x)P'(x)` - results_ts$`P'(y|do(1))`
+
+results_ts$diff0 <- results_ts$`P(y|do(0),x)P'(x)` - results_ts$`P'(y|do(0))`
+
+
+ggplot(data= results_st, aes(x= 14:17, y= -1:1)) + geom_point(mapping = aes(x= 14:17, y = results_st$diff1), color = "blue") + geom_path(mapping = aes(x= 14:17, y = results_st$diff1), color = "blue") + geom_point(mapping = aes(x= 14:17, y = results_st$diff0), color = "green") + geom_path(mapping = aes(x= 14:17, y = results_st$diff0), color = "green") + geom_hline(yintercept = 0, color = "red") + expand_limits(y=c(-0.03, 0.03)) + ylab("difference between normal and transport formula") + xlab("Y") + ggtitle("Difference in estimation for orginal population") 
+
+ggplot(data= results_st, aes(x= 14:17, y= -1:1)) + geom_point(mapping = aes(x= 14:17, y = results_ts$diff1), color = "blue") + geom_path(mapping = aes(x= 14:17, y = results_ts$diff1), color = "blue") + geom_point(mapping = aes(x= 14:17, y = results_ts$diff0), color = "green") + geom_path(mapping = aes(x= 14:17, y = results_ts$diff0), color = "green") + geom_hline(yintercept = 0, color = "red") + expand_limits(y=c(-0.03, 0.03)) + ylab("difference between normal and transport formula") + xlab("Y") + ggtitle("Difference in estimation for target population") 
+
+
+
+
+```

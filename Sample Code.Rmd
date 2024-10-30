@@ -1,0 +1,953 @@
+---
+title: "Problem Set 2 Causal Inference"
+output:
+  pdf_document: 
+    latex_engine: lualatex
+  html_document: default
+  word_document: default
+date: "2024-02-21"
+---
+
+```{r setup, include=FALSE}
+
+rm(list = ls())
+
+library(dagitty)
+library(splitTools)
+library(dplyr)
+library(boot)
+library(ggplot2)
+library(nptest)
+library(nnet)
+library(twang)
+library(MatchIt)
+library(Hmisc)
+library(DescTools)
+library(mlr3misc)
+library(groupdata2)
+
+setwd("/Users/nicolocapirone/Documents/Uni/BU/Causal Inference/Problem Sets")
+
+data <- read.csv("nhanes_bmi.csv")
+
+covmat <- cov(subset(data[4:14]))
+
+meanvec <- colMeans(subset(data[4:14]))
+
+data$mdist <- mahalanobis(subset(data[4:14]), meanvec, covmat)
+
+set.seed(70)
+
+dataf <- fold(data = data, k = .5, num_col = "mdist", method = "n_dist")
+
+datanf <- subset(dataf, .folds == 1, select = -c(.folds))
+
+dataate <- subset(dataf, .folds == 2, select = -c(.folds))
+
+rm(dataf)
+
+
+```
+
+# Estimating Propensity Score
+
+```{r, include=TRUE}
+
+prop_score <- glm(School_meal ~ age + I(age^2) + ChildSex + black + mexam + 
+                    pir200_plus + I(pir200_plus^2) + WIC + Food_Stamp + fsdchbi 
+                  + AnyIns + RefAge, data = datanf, family = "binomial")
+
+dataate$π <- predict(prop_score, dataate, type = "response")
+
+```
+
+# Checking Balancing Property
+
+A propensity score is said to satisfy the balancing property when: 
+$E[\frac{A}{π(x)}Y h(x)] \approx E[h(x)], h(x) = x$
+
+```{r}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+
+#Age
+
+ci_bal_age <- function(data,idx){
+  df <- data[idx, ]
+  
+  bal_check <- sum((df$School_meal/df$π)*df$age)
+    
+  diff <- bal_check/1665 - sum(df$age)/1665
+
+  return(diff)
+  
+}
+
+boot_age <- boot(dataate, ci_bal_age, R = 1500)
+suppressWarnings(
+ci_age <- boot.ci(boot_age)
+)
+
+
+#ChildSex
+
+ci_bal_sex <- function(data,idx){
+  df <- data[idx, ]
+  
+  bal_check <- sum((df$School_meal/df$π)*df$ChildSex)
+    
+  diff <- bal_check/1665 - sum(df$ChildSex)/1665
+
+  return(diff)
+  
+}
+boot_sex <- boot(dataate, ci_bal_sex, R = 1500)
+suppressWarnings(
+ci_sex <- boot.ci(boot_sex)
+)
+
+
+#black
+
+ci_bal_black <- function(data,idx){
+  df <- data[idx, ]
+  
+  bal_check <- sum((df$School_meal/df$π)*df$black)
+    
+  diff <- bal_check/1665 - sum(df$black)/1665
+
+  return(diff)
+  
+}
+boot_black <- boot(dataate, ci_bal_black, R = 1500)
+suppressWarnings(
+ci_black <- boot.ci(boot_black)
+)
+
+
+#mexam
+
+ci_bal_mexam <- function(data,idx){
+  df <- data[idx, ]
+  
+  bal_check <- sum((df$School_meal/df$π)*df$mexam)
+    
+  diff <- bal_check/1665 - sum(df$mexam)/1665
+
+  return(diff)
+  
+}
+boot_mex <- boot(dataate, ci_bal_mexam, R = 1500)
+suppressWarnings(
+ci_mex <- boot.ci(boot_mex)
+)
+
+
+#pir200_plus
+
+ci_bal_pir <- function(data,idx){
+  df <- data[idx, ]
+  
+  bal_check <- sum((df$School_meal/df$π)*df$pir200_plus)
+    
+  diff <- bal_check/1665 - sum(df$pir200_plus)/1665
+
+  return(diff)
+  
+}
+boot_pir <- boot(dataate, ci_bal_pir, R = 1500)
+suppressWarnings(
+ci_pir <- boot.ci(boot_pir)
+)
+
+
+#WIC
+
+ci_bal_wic <- function(data,idx){
+  df <- data[idx, ]
+  
+  bal_check <- sum((df$School_meal/df$π)*df$WIC)
+    
+  diff <- bal_check/1665 - sum(df$WIC)/1665
+
+  return(diff)
+  
+}
+boot_wic <- boot(dataate, ci_bal_wic, R = 1500)
+suppressWarnings(
+ci_wic <- boot.ci(boot_wic)
+)
+
+
+#Food_Stamp
+
+ci_bal_stamp <- function(data,idx){
+  df <- data[idx, ]
+  
+  bal_check <- sum((df$School_meal/df$π)*df$Food_Stamp)
+    
+  diff <- bal_check/1665 - sum(df$Food_Stamp)/1665
+
+  return(diff)
+  
+}
+boot_stamp <- boot(dataate, ci_bal_stamp, R = 1500)
+suppressWarnings(
+ci_stamp <- boot.ci(boot_stamp)
+)
+
+
+#fsdchbi
+
+ci_bal_fs <- function(data,idx){
+  df <- data[idx, ]
+  
+  bal_check <- sum((df$School_meal/df$π)*df$fsdchbi)
+    
+  diff <- bal_check/1665 - sum(df$fsdchbi)/1665
+
+  return(diff)
+  
+}
+boot_fs <- boot(dataate, ci_bal_fs, R = 1500)
+suppressWarnings(
+ci_fs <- boot.ci(boot_fs)
+)
+
+
+#AnyIns
+
+ci_bal_anyins <- function(data,idx){
+  df <- data[idx, ]
+  
+  bal_check <- sum((df$School_meal/df$π)*df$AnyIns)
+    
+  diff <- bal_check/1665 - sum(df$AnyIns)/1665
+
+  return(diff)
+  
+}
+boot_anyins <- boot(dataate, ci_bal_anyins, R = 1500)
+suppressWarnings(
+ci_ins <- boot.ci(boot_anyins)
+)
+
+
+#RefSex
+
+ci_bal_refsex <- function(data,idx){
+  df <- data[idx, ]
+  
+  bal_check <- sum((df$School_meal/df$π)*df$RefSex)
+    
+  diff <- bal_check/1665 - sum(df$RefSex)/1665
+
+  return(diff)
+  
+}
+boot_refsex <- boot(dataate, ci_bal_refsex, R = 1500)
+suppressWarnings(
+ci_refsex <- boot.ci(boot_refsex)
+)
+
+
+#RefAge
+
+ci_bal_refage <- function(data,idx){
+  df <- data[idx, ]
+  
+  bal_check <- sum((df$School_meal/df$π)*df$RefAge)
+    
+  diff <- bal_check/1665 - sum(df$RefAge)/1665
+
+  return(diff)
+  
+}
+boot_refage <- boot(dataate, ci_bal_refage, R = 1500)
+suppressWarnings(
+ci_refage <- boot.ci(boot_refage)
+)
+
+balancing_estimates <- c(boot_age$t0, boot_sex$t0, boot_black$t0, boot_mex$t0, 
+                         boot_pir$t0, boot_wic$t0, boot_stamp$t0, boot_fs$t0, 
+                         boot_anyins$t0, boot_refsex$t0, boot_refage$t0)
+
+balancing_ci_h <- c(ci_age$percent[5], ci_sex$percent[5], ci_black$percent[5], 
+                    ci_mex$percent[5], ci_pir$percent[5], ci_wic$percent[5], 
+                    ci_stamp$percent[5], ci_fs$percent[5], ci_ins$percent[5], 
+                    ci_refsex$percent[5], ci_refage$percent[5])
+
+balancing_ci_l <- c(ci_age$percent[4], ci_sex$percent[4], ci_black$percent[4], 
+                    ci_mex$percent[4], ci_pir$percent[4], ci_wic$percent[4], 
+                    ci_stamp$percent[4], ci_fs$percent[4], ci_ins$percent[4], 
+                    ci_refsex$percent[4], ci_refage$percent[4])
+
+balancing_scores <- data.frame(balancing_estimates, balancing_ci_l, balancing_ci_h)
+
+row.names(balancing_scores) <- c("age", "ChildSex", "black", "mexam", 
+                                 "pir200_plus", "WIC", "Food_Stamp", 
+                                 "fsdchbi", "AnyIns", "RefSex", "RefAge")
+ 
+print(balancing_scores)
+
+
+```
+
+# Causal Effects Using OR Estimator
+
+$\theta^{or}_{ATE} = E[\hat\mu (A=1, X) - \hat\mu(A=0, X)]$
+
+```{r, include=TRUE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+
+
+lm1 <- lm(BMI ~ age + I(age^2) + I(age^3) + ChildSex + black + mexam + 
+            pir200_plus + WIC + Food_Stamp + fsdchbi + AnyIns + RefAge, 
+          data = subset(datanf, School_meal == 1))
+          
+lm0 <- lm(BMI ~ age + I(age^2) + I(age^3) + ChildSex + black + mexam + 
+            pir200_plus + WIC + Food_Stamp + fsdchbi + AnyIns + RefAge, 
+          data = subset(datanf, School_meal == 0))
+
+
+mu <- function(lm, data){
+  lm$coefficients[1] + lm$coefficients[2]*data$age + 
+    lm$coefficients[3]*data$age^2 + lm$coefficients[4]*data$age^3 + 
+    lm$coefficients[5]*data$ChildSex + lm$coefficients[6]*data$black + 
+    lm$coefficients[7]*data$mexam + lm$coefficients[8]*data$pir200_plus + 
+    lm$coefficients[9]*data$WIC + lm$coefficients[10]*data$Food_Stamp + 
+    lm$coefficients[11]*data$fsdchbi + lm$coefficients[12]*data$AnyIns + 
+    lm$coefficients[13]*data$RefAge
+}
+
+
+ate_or <- (sum(mu(lm1,dataate) - mu(lm0,dataate)))/1665
+
+
+vec_par_or <- c()
+
+for (t in 1:1500){
+  
+  data1 = data[sample(nrow(datanf), size = 1665, replace = TRUE), ]
+  
+  lm2 <- lm(BMI ~ age + I(age^2) + I(age^3) + ChildSex + black + mexam + 
+              pir200_plus + WIC + Food_Stamp + fsdchbi + AnyIns + RefAge, 
+            data = subset(data1, School_meal == 1))
+          
+  lm3 <- lm(BMI ~ age + I(age^2) + I(age^3) + ChildSex + black + mexam + 
+              pir200_plus + WIC + Food_Stamp + fsdchbi + AnyIns + RefAge, 
+            data = subset(data1, School_meal == 0))
+  
+  par_or <- (sum(mu(lm2,dataate)) - sum(mu(lm3,dataate)))/1665
+  
+  
+  vec_par_or <- append(vec_par_or, par_or)
+  
+  rm(par_or)
+  
+}
+
+mean_or = mean(vec_par_or)
+
+SE_or = sd(vec_par_or)/sqrt(length(vec_par_or))
+
+
+
+```
+
+# Causal Effects Using IPW Estimator
+
+$\theta^{ipw}_{ATE} = E[\frac{A_i}{π(X_i)}Y_i - \frac{1-A_i}{1-π(X_i)}Y_i]$
+
+```{r}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+
+
+ate_ipw <- sum(((dataate$School_meal/dataate$π)*dataate$BMI) - 
+                 (((1-dataate$School_meal)/(1-dataate$π))*dataate$BMI))/1665
+
+vec_par_ipw <- c()
+
+
+for (t in 1:1500){
+  data2 = data[sample(nrow(datanf), size = 1665, replace = TRUE), ]
+  
+  prop_score1 <- glm(School_meal ~ age + I(age^2) + I(age^3) + ChildSex + black 
+                     + mexam + pir200_plus + WIC + Food_Stamp + fsdchbi + AnyIns 
+                     + RefAge, data = data2, family = "binomial")
+  
+  dataate$π2 <- predict(prop_score1, dataate, type = "response")
+  
+  par_ipw <- sum(((dataate$School_meal/dataate$π2)*dataate$BMI) - 
+                   (((1-dataate$School_meal)/(1-dataate$π2))*dataate$BMI))/1665
+  
+  
+  vec_par_ipw <- append(vec_par_ipw, par_ipw)
+  
+  rm(par_ipw)
+  
+}
+
+mean_ipw = mean(vec_par_ipw)
+
+SE_ipw = sd(vec_par_ipw)/sqrt(length(vec_par_ipw))
+
+
+
+```
+
+# Causal Effects Using Hajek Estimator
+
+$\theta^{hajek}_{ATE} = E[\frac{A_i/π(X_i)}{E_n[A/π(X_i)]}Y_i - \frac{(1-A_i)/(1-π(X_i))}{E_n[(1-A_i)/(1-π(X_i))]}Y_i]$
+
+```{r}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+
+En1 <- sum(dataate$School_meal/dataate$π)/1665
+
+En2 <- sum((1-dataate$School_meal)/(1-dataate$π))/1665
+
+ate_hajek <- sum((((dataate$School_meal/dataate$π)/En1)*dataate$BMI) - 
+                   ((((1-dataate$School_meal)/(1-dataate$π))/En2)*dataate$BMI))/1665
+
+
+vec_par_hajek <- c()
+
+
+for (t in 1:1500){
+  data3 = data[sample(nrow(datanf), size = 1665, replace = TRUE), ]
+  
+  prop_score2 <- glm(School_meal ~ age + I(age^2) + I(age^3) + ChildSex + black 
+                     + mexam + pir200_plus + WIC + Food_Stamp + fsdchbi + AnyIns 
+                     + RefAge, data = data3, family = "binomial")
+  
+  dataate$π3 <- predict(prop_score2, dataate, type = "response")
+  
+  En1.1 <- sum(dataate$School_meal/dataate$π3)/1665
+
+  En2.1 <- sum((1-dataate$School_meal)/(1-dataate$π3))/1665
+
+  par_hajek <- sum((((dataate$School_meal/dataate$π3)/En1.1)*dataate$BMI) - 
+                     ((((1-dataate$School_meal)/(1-dataate$π3))/En2.1)*
+                        dataate$BMI))/1665
+  
+  
+  vec_par_hajek <- append(vec_par_hajek, par_hajek)
+  
+  rm(par_hajek)
+  
+}
+
+mean_hajek = mean(vec_par_hajek)
+
+SE_hajek = sd(vec_par_hajek)/sqrt(length(vec_par_hajek))
+
+
+```
+
+# Causal Effects Using Doubly Robust Estimator
+
+$\theta^{dr}_{ATE} = E[\frac{A_i[Y_i- \hat\mu(1,X_i)]}{\hatπ(X_i)} + \hat\mu(1,X_i) - \frac{(1-A_i)[Y_i- \hat\mu(0,X_i)]}{1-\hatπ(X_i)} + \hat\mu(0,X_i) ]$
+
+```{r}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+
+ate_dr <- sum((dataate$School_meal*(dataate$BMI-mu(lm1,dataate)))/dataate$π + 
+                mu(lm1,dataate) - ((1-dataate$School_meal)*
+                                     (dataate$BMI-mu(lm0,dataate)))/
+                (1-dataate$π) - mu(lm0,dataate))/1665
+
+
+vec_par_dr <- c()
+
+for (t in 1:1500){
+  data4 = data[sample(nrow(datanf), size = 1665, replace = TRUE), ]
+  
+  lm4 <- lm(BMI ~ age + I(age^2) + I(age^3) + ChildSex + black + mexam + 
+              pir200_plus + WIC + Food_Stamp + fsdchbi + AnyIns + RefAge, 
+            data = subset(data4, School_meal == 1))
+          
+  lm5 <- lm(BMI ~ age + I(age^2) + I(age^3) + ChildSex + black + mexam + 
+              pir200_plus + WIC + Food_Stamp + fsdchbi + AnyIns + RefAge, 
+            data = subset(data4, School_meal == 0))
+    
+  
+  prop_score3 <- glm(School_meal ~ age + I(age^2) + I(age^3) + ChildSex + black 
+                     + mexam + pir200_plus + WIC + Food_Stamp + fsdchbi + AnyIns 
+                     + RefAge , data = data4, family = "binomial")
+  
+  dataate$π4 <- predict(prop_score3, dataate, type = "response")
+
+  par_dr <- sum((dataate$School_meal*(dataate$BMI-mu(lm4,dataate)))/dataate$π4 
+                + mu(lm4,dataate) - ((1-dataate$School_meal)*
+                                       (dataate$BMI-mu(lm5,dataate)))/
+                  (1-dataate$π4) - mu(lm5,dataate))/1665
+  
+  
+  vec_par_dr <- append(vec_par_dr, par_dr)
+  
+  rm(par_dr)
+  
+}
+
+mean_dr = mean(vec_par_dr)
+
+SE_dr = sd(vec_par_dr)/sqrt(length(vec_par_dr))
+
+
+```
+
+# Results for OR, IPW, Hajek, DR
+
+```{r}
+
+
+non_bootstrap_ate <- c(ate_or, ate_ipw, ate_hajek, ate_dr)
+
+bootstrap_ate <- c(mean_or, mean_ipw, mean_hajek, mean_dr)
+
+standard_error <- c(SE_or, SE_ipw, SE_hajek, SE_dr)
+
+ATE_estimates <- data.frame(non_bootstrap_ate, bootstrap_ate, standard_error)
+
+row.names(ATE_estimates) <- c("OR", "IPW", "Hajek", "DR")
+
+print(ATE_estimates)
+
+```
+
+# Matching Estimator with M=3
+
+```{r}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+
+covmat <- cov(subset(data[4:14]))
+
+meanvec <- colMeans(subset(data[4:14]))
+
+data$mdist <- mahalanobis(subset(data[4:14]), meanvec, covmat)
+
+m.treat <- subset(data, School_meal == 1)
+
+m.control <- subset(data, School_meal == 0)
+
+
+
+matched3_y_treat <- c()
+
+
+new_control <- m.treat[0,]
+
+for (ii in 1:1284) {
+  
+  m1 <- Closest(m.control$mdist, m.treat$mdist[ii])
+
+  m2 <- Closest(m.control$mdist[!m.control$mdist == m1], m.treat$mdist[ii])
+
+  m3 <- Closest(m.control$mdist[!m.control$mdist %in% c(m1,m2)], m.treat$mdist[ii])
+  
+  me <- matrix(data = colMeans(m.control[ m.control$mdist == m1 | 
+                                            m.control$mdist == m2 | 
+                                            m.control$mdist == m3 ,]), 
+               ncol = 15, nrow = 1)
+  
+  colnames(me) = c("X", "BMI", "School_meal", "age", "ChildSex", "black", 
+                   "mexam", "pir200_plus", "WIC", "Food_Stamp", "fsdchbi", 
+                   "AnyIns", "RefSex", "RefAge", "mdist")
+  
+  new_control <- rbind(new_control, me)
+  
+  y1 <- m.control$BMI[m.control$mdist == m1]
+  
+  y2 <- m.control$BMI[m.control$mdist == m2]
+  
+  y3 <- m.control$BMI[m.control$mdist == m3]
+  
+  y <- c(y1,y2,y3)
+
+  matched3_y_treat <- append(matched3_y_treat, mean(y))  
+  
+}
+
+m.treat$match <- matched3_y_treat
+
+
+matched3_y_cont <- c()
+
+for (jj in 1:1046) {
+  
+  m1 <- Closest(m.treat$mdist, m.control$mdist[jj])
+
+  m2 <- Closest(m.treat$mdist[!m.treat$mdist == m1], m.control$mdist[jj])
+
+  m3 <- Closest(m.treat$mdist[!m.treat$mdist %in% c(m1,m2)], m.control$mdist[jj])
+  
+  y1 <- m.treat$BMI[m.treat$mdist == m1]
+  
+  y2 <- m.treat$BMI[m.treat$mdist == m2]
+  
+  y3 <- m.treat$BMI[m.treat$mdist == m3]
+  
+  y <- c(y1,y2,y3)
+
+  matched3_y_cont <- append(matched3_y_cont, mean(y))  
+}
+
+m.control$match <- matched3_y_cont
+
+matched_data <- rbind(m.control, m.treat)
+
+matched_data <- matched_data[order(matched_data$X),]
+
+ate_match3 <- (1/2330)*sum((2*matched_data$School_meal - 1)*
+                             (matched_data$BMI - matched_data$match))
+
+ate_match3_bias <- (1/2330)*sum(mu(lm1,matched_data) + 
+                                  (matched_data$School_meal *
+                                     (matched_data$BMI - mu(lm1, matched_data) 
+                                      - matched_data$match)) - 
+                                  mu(lm1,matched_data) - 
+                                  (ifelse(matched_data$School_meal == 0, 1, 0) 
+                                   *(matched_data$BMI - mu(lm1, matched_data) 
+                                     - matched_data$match)))
+
+
+
+```
+
+# Matching Estimator with M = 6
+
+```{r}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+
+m.treat <- subset(data, School_meal == 1)
+
+m.control <- subset(data, School_meal == 0)
+
+
+matched6_y_treat <- c()
+
+new_control <- m.treat[0,]
+
+for (ii in 1:1284) {
+  
+  m1 <- Closest(m.control$mdist, m.treat$mdist[ii])
+
+  m2 <- Closest(m.control$mdist[!m.control$mdist == m1], m.treat$mdist[ii])
+
+  m3 <- Closest(m.control$mdist[!m.control$mdist %in% c(m1,m2)], 
+                m.treat$mdist[ii])
+  
+  m4 <- Closest(m.control$mdist[!m.control$mdist %in% c(m1,m2,m3)], 
+                m.treat$mdist[ii])
+  
+  m5 <- Closest(m.control$mdist[!m.control$mdist %in% c(m1,m2,m3,m4)], 
+                m.treat$mdist[ii])
+  
+  m6 <- Closest(m.control$mdist[!m.control$mdist %in% c(m1,m2,m3,m4,m5)], 
+                m.treat$mdist[ii])
+  
+  me <- matrix(data = colMeans(m.control[ m.control$mdist == m1 | 
+                                            m.control$mdist == m2 | 
+                                            m.control$mdist == m3 | 
+                                            m.control$mdist == m4 | 
+                                            m.control$mdist == m5 | 
+                                            m.control$mdist == m6,]), 
+               ncol = 15, nrow = 1)
+  
+  colnames(me) = c("X", "BMI", "School_meal", "age", "ChildSex", "black", 
+                   "mexam", "pir200_plus", "WIC", "Food_Stamp", "fsdchbi", 
+                   "AnyIns", "RefSex", "RefAge", "mdist")
+  
+  new_control <- rbind(new_control, me)
+  
+  y1 <- m.control$BMI[m.control$mdist == m1]
+  
+  y2 <- m.control$BMI[m.control$mdist == m2]
+  
+  y3 <- m.control$BMI[m.control$mdist == m3]
+  
+  y4 <- m.control$BMI[m.control$mdist == m4]
+  
+  y5 <- m.control$BMI[m.control$mdist == m5]
+  
+  y6 <- m.control$BMI[m.control$mdist == m6]
+  
+  
+  y <- c(y1,y2,y3,y4,y5,y6)
+
+  matched6_y_treat <- append(matched6_y_treat, mean(y))  
+}
+
+m.treat$match <- matched6_y_treat
+
+
+matched6_y_cont <- c()
+
+for (jj in 1:1046) {
+  
+  m1 <- Closest(m.treat$mdist, m.control$mdist[jj])
+
+  m2 <- Closest(m.treat$mdist[!m.treat$mdist == m1], m.control$mdist[jj])
+
+  m3 <- Closest(m.treat$mdist[!m.treat$mdist %in% c(m1,m2)], 
+                m.control$mdist[jj])
+  
+  m4 <- Closest(m.treat$mdist[!m.treat$mdist %in% c(m1,m2,m3)], 
+                m.control$mdist[jj])
+  
+  m5 <- Closest(m.treat$mdist[!m.treat$mdist %in% c(m1,m2,m3,m4)], 
+                m.control$mdist[jj])
+  
+  m6 <- Closest(m.treat$mdist[!m.treat$mdist %in% c(m1,m2,m3,m4,m5)], 
+                m.control$mdist[jj])
+  
+  y1 <- m.treat$BMI[m.treat$mdist == m1]
+  
+  y2 <- m.treat$BMI[m.treat$mdist == m2]
+  
+  y3 <- m.treat$BMI[m.treat$mdist == m3]
+  
+  y4 <- m.treat$BMI[m.treat$mdist == m4]
+  
+  y5 <- m.treat$BMI[m.treat$mdist == m5]
+  
+  y6 <- m.treat$BMI[m.treat$mdist == m6]
+  
+  y <- c(y1,y2,y3,y4,y5,y6)
+
+  matched6_y_cont <- append(matched6_y_cont, mean(y))  
+}
+
+m.control$match <- matched6_y_cont
+
+matched_data <- rbind(m.control, m.treat)
+
+matched_data <- matched_data[order(matched_data$X),]
+
+ate_match6 <- (1/2330)*sum((2*matched_data$School_meal - 1)*
+                             (matched_data$BMI - matched_data$match))
+
+ate_match6_bias <- (1/2330)*sum(mu(lm1,matched_data) + 
+                                  (matched_data$School_meal 
+                                   *(matched_data$BMI - mu(lm1, matched_data) 
+                                     - matched_data$match)) 
+                                - mu(lm1,matched_data) 
+                                - (ifelse(matched_data$School_meal == 0, 1, 0) 
+                                   *(matched_data$BMI - mu(lm1, matched_data) 
+                                     - matched_data$match)))
+
+
+
+```
+
+# Matching Estimator with M = 10
+
+```{r}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+
+m.treat <- subset(data, School_meal == 1)
+
+m.control <- subset(data, School_meal == 0)
+
+
+
+matched10_y_treat <- c()
+
+new_control <- m.treat[0,]
+
+for (ii in 1:1284) {
+  
+  m1 <- Closest(m.control$mdist, m.treat$mdist[ii])
+
+  m2 <- Closest(m.control$mdist[!m.control$mdist == m1], m.treat$mdist[ii])
+
+  m3 <- Closest(m.control$mdist[!m.control$mdist %in% c(m1,m2)], 
+                m.treat$mdist[ii])
+  
+  m4 <- Closest(m.control$mdist[!m.control$mdist %in% c(m1,m2,m3)], 
+                m.treat$mdist[ii])
+  
+  m5 <- Closest(m.control$mdist[!m.control$mdist %in% c(m1,m2,m3,m4)], 
+                m.treat$mdist[ii])
+  
+  m6 <- Closest(m.control$mdist[!m.control$mdist %in% c(m1,m2,m3,m4,m5)], 
+                m.treat$mdist[ii])
+  
+  m7 <- Closest(m.control$mdist[!m.control$mdist %in% c(m1,m2,m3,m4,m5,m6)], 
+                m.treat$mdist[ii])
+  
+  m8 <- Closest(m.control$mdist[!m.control$mdist %in% c(m1,m2,m3,m4,m5,m6,m7)], 
+                m.treat$mdist[ii])
+  
+  m9 <- Closest(m.control$mdist[!m.control$mdist %in% 
+                                  c(m1,m2,m3,m4,m5,m6,m7,m8)], m.treat$mdist[ii])
+  
+  m10 <- Closest(m.control$mdist[!m.control$mdist 
+                                 %in% c(m1,m2,m3,m4,m5,m6,m7,m8,m9)], 
+                 m.treat$mdist[ii])
+  
+  me <- matrix(data = colMeans(m.control[ m.control$mdist == m1 | 
+                                            m.control$mdist == m2 | 
+                                            m.control$mdist == m3 | 
+                                            m.control$mdist == m4 | 
+                                            m.control$mdist == m5 | 
+                                            m.control$mdist == m6 | 
+                                            m.control$mdist == m7 |
+                                            m.control$mdist == m8 | 
+                                            m.control$mdist == m9 | 
+                                            m.control$mdist == m10 ,]), 
+               ncol = 15, nrow = 1)
+  
+  colnames(me) = c("X", "BMI", "School_meal", "age", "ChildSex", "black", 
+                   "mexam", "pir200_plus", "WIC", "Food_Stamp", "fsdchbi", 
+                   "AnyIns", "RefSex", "RefAge", "mdist")
+  
+  new_control <- rbind(new_control, me)
+  
+  y1 <- m.control$BMI[m.control$mdist == m1]
+  
+  y2 <- m.control$BMI[m.control$mdist == m2]
+  
+  y3 <- m.control$BMI[m.control$mdist == m3]
+  
+  y4 <- m.control$BMI[m.control$mdist == m4]
+  
+  y5 <- m.control$BMI[m.control$mdist == m5]
+  
+  y6 <- m.control$BMI[m.control$mdist == m6]
+  
+  y7 <- m.control$BMI[m.control$mdist == m7]
+  
+  y8 <- m.control$BMI[m.control$mdist == m8]
+  
+  y9 <- m.control$BMI[m.control$mdist == m9]
+  
+  y10 <- m.control$BMI[m.control$mdist == m10]
+  
+  
+  y <- c(y1,y2,y3,y4,y5,y6,y7,y8,y9,y10)
+
+  matched10_y_treat <- append(matched10_y_treat, mean(y))  
+}
+
+m.treat$match <- matched10_y_treat
+
+
+matched10_y_cont <- c()
+
+for (jj in 1:1046) {
+  
+  m1 <- Closest(m.treat$mdist, m.control$mdist[jj])
+
+  m2 <- Closest(m.treat$mdist[!m.treat$mdist == m1], m.control$mdist[jj])
+
+  m3 <- Closest(m.treat$mdist[!m.treat$mdist %in% c(m1,m2)], 
+                m.control$mdist[jj])
+  
+  m4 <- Closest(m.treat$mdist[!m.treat$mdist %in% c(m1,m2,m3)],
+                m.control$mdist[jj])
+  
+  m5 <- Closest(m.treat$mdist[!m.treat$mdist %in% c(m1,m2,m3,m4)], 
+                m.control$mdist[jj])
+  
+  m6 <- Closest(m.treat$mdist[!m.treat$mdist %in% c(m1,m2,m3,m4,m5)],
+                m.control$mdist[jj])
+  
+  m7 <- Closest(m.treat$mdist[!m.treat$mdist %in% c(m1,m2,m3,m4,m5,m6)], 
+                m.control$mdist[jj])
+  
+  m8 <- Closest(m.treat$mdist[!m.treat$mdist %in% c(m1,m2,m3,m4,m5,m6,m7)], 
+                m.control$mdist[jj])
+  
+  m9 <- Closest(m.treat$mdist[!m.treat$mdist %in% c(m1,m2,m3,m4,m5,m6,m7,m8)], 
+                m.control$mdist[jj])
+  
+  m10 <- Closest(m.treat$mdist[!m.treat$mdist 
+                               %in% c(m1,m2,m3,m4,m5,m6,m7,m8,m9)], 
+                 m.control$mdist[jj])
+  
+  y1 <- m.treat$BMI[m.treat$mdist == m1]
+  
+  y2 <- m.treat$BMI[m.treat$mdist == m2]
+  
+  y3 <- m.treat$BMI[m.treat$mdist == m3]
+  
+  y4 <- m.treat$BMI[m.treat$mdist == m4]
+  
+  y5 <- m.treat$BMI[m.treat$mdist == m5]
+  
+  y6 <- m.treat$BMI[m.treat$mdist == m6]
+  
+  y7 <- m.treat$BMI[m.treat$mdist == m7]
+  
+  y8 <- m.treat$BMI[m.treat$mdist == m8]
+  
+  y9 <- m.treat$BMI[m.treat$mdist == m9]
+  
+  y10 <- m.treat$BMI[m.treat$mdist == m10]
+  
+  y <- c(y1,y2,y3,y4,y5,y6,y7,y8,y9,y10)
+
+  matched10_y_cont <- append(matched10_y_cont, mean(y))  
+}
+
+m.control$match <- matched10_y_cont
+
+matched_data <- rbind(m.control, m.treat)
+
+matched_data <- matched_data[order(matched_data$X),]
+
+ate_match10 <- (1/2330)*sum((2*matched_data$School_meal - 1)
+                            *(matched_data$BMI - matched_data$match))
+
+ate_match10_bias <- (1/2330)*sum(mu(lm1,matched_data) + 
+                                   (matched_data$School_meal 
+                                    *(matched_data$BMI - mu(lm1, matched_data)
+                                      - matched_data$match)) -
+                                   mu(lm1,matched_data) -
+                                   (ifelse(matched_data$School_meal == 0, 1, 0)
+                                    *(matched_data$BMI - mu(lm1, matched_data)
+                                      - matched_data$match)))
+
+```
+
+# Matching Results
+
+```{r}
+match_ate <- c(ate_match3, ate_match6, ate_match10)
+
+bias_corrected_ate <- c(ate_match3_bias, ate_match6_bias, ate_match10_bias)
+
+MATCH_estimates <- data.frame(match_ate, bias_corrected_ate)
+
+row.names(MATCH_estimates) <- c("M=3", "M=6", "M=10")
+
+print(MATCH_estimates)
+
+```
+
+# Matching Distribuition
+
+```{r}
+covariates <- c("X", "BMI", "School_meal", "age", "ChildSex", "black", 
+                "mexam", "pir200_plus", "WIC", "Food_Stamp", "fsdchbi", 
+                "AnyIns", "RefSex", "RefAge", "mdist")
+
+titles <- c("control_pre", "treat", "control_post")
+
+for (i in 4:15){
+  par(mfrow = c(1,3))
+  hist(matched_data[,i][data$School_meal == 0], xlab = covariates[i], 
+       main = titles[1])
+  abline(v=mean(matched_data[,i][data$School_meal == 0]), col = "orange")
+
+  hist(matched_data[,i][data$School_meal == 1], xlab = covariates[i],
+       main = titles[2])
+  abline(v=mean(matched_data[,i][data$School_meal == 1]), col = "orange")
+  
+  hist(new_control[,i], xlab = covariates[i], main = titles[3])
+  abline(v=mean(new_control[,i]), col = "orange")
+}
+
+
+```
